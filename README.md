@@ -10,8 +10,7 @@ Webcam → SC1 (filter A) → Unity Capture Device 0 → SplitCam → SC2 (filte
 
 ## Prerequisites
 
-- [Snap Camera](https://snapcamera.snapchat.com/) — original installer
-- [snap-camera-server](https://github.com/ptrumpis/snap-camera-server) — self-hosted lens server (required since Snap Camera's official servers are shut down)
+- [snap-camera-server](https://github.com/ptrumpis/snap-camera-server) — self-hosted lens server; Snap Camera is no longer officially available, see this repo for instructions on obtaining the installer and patching the executable
 - [SplitCam](https://splitcam.com/) (or similar) — bridges SC1's output to SC2's input
 - [System Informer](https://systeminformer.io/) — used to close handles that prevent multiple Snap Camera instances
 - [UnityCapture](https://github.com/schellingb/UnityCapture) — virtual camera driver for output
