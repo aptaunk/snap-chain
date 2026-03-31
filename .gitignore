@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Diagnostic image dumps
+*.png
+!screenshots/*.png
+tex_dump/
+
+# UnityCapture DLLs (get from https://github.com/schellingb/UnityCapture)
+UnityCaptureFilter32.dll
+UnityCaptureFilter64.dll
+
+# Runtime config
+snap_viewer_config.json
