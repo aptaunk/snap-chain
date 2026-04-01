@@ -66,6 +66,7 @@ class SnapFeed:
         self._script      = None
         self._stop_event  = threading.Event()
         self._vcam_thread = None
+        self.flip         = True   # flip vertically (OpenGL bottom-up → top-down)
 
     def _on_message(self, message, data):
         if message['type'] == 'send':
@@ -74,7 +75,7 @@ class SnapFeed:
                 w, h = payload['w'], payload['h']
                 try:
                     arr     = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 4))
-                    raw_bgr = np.ascontiguousarray(arr[::-1, :, :3])
+                    raw_bgr = np.ascontiguousarray(arr[::-1, :, :3] if self.flip else arr[:, :, :3])
                     display = (cv2.resize(raw_bgr, (self.display_w, self.display_h),
                                           interpolation=cv2.INTER_LINEAR)
                                if raw_bgr.shape[1] != self.display_w or raw_bgr.shape[0] != self.display_h
@@ -279,6 +280,12 @@ def main():
         combo.current(0)
         combo.grid(row=0, column=1, padx=(6, 0))
         combos.append(combo)
+
+        flip_var = tk.BooleanVar(value=feed.flip)
+        def _on_flip_toggle(f=feed, v=flip_var):
+            f.flip = v.get()
+        ttk.Checkbutton(frm, text="Flip", variable=flip_var,
+                        command=_on_flip_toggle).grid(row=0, column=2, padx=(8, 0))
 
         def _on_select(event, f=feed, v=var):
             f.force_lock(_tex_id_from_sel(v.get()))
