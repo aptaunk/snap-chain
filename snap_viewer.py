@@ -18,6 +18,7 @@ import os
 import re
 import sys
 import queue
+import threading
 
 import frida
 import cv2
@@ -60,9 +61,11 @@ class SnapFeed:
 
         self.display_q: queue.Queue = queue.Queue(maxsize=self._QUEUE_SIZE)
         self.vcam_q:    queue.Queue = queue.Queue(maxsize=self._QUEUE_SIZE)
-        self._vcam    = None
-        self._session = None
-        self._script  = None
+        self._vcam        = None
+        self._session     = None
+        self._script      = None
+        self._stop_event  = threading.Event()
+        self._vcam_thread = None
 
     def _on_message(self, message, data):
         if message['type'] == 'send':
@@ -71,8 +74,7 @@ class SnapFeed:
                 w, h = payload['w'], payload['h']
                 try:
                     arr     = np.frombuffer(data, dtype=np.uint8).reshape((h, w, 4))
-                    arr     = arr[::-1]
-                    raw_bgr = np.ascontiguousarray(arr[:, :, :3])
+                    raw_bgr = np.ascontiguousarray(arr[::-1, :, :3])
                     display = (cv2.resize(raw_bgr, (self.display_w, self.display_h),
                                           interpolation=cv2.INTER_LINEAR)
                                if raw_bgr.shape[1] != self.display_w or raw_bgr.shape[0] != self.display_h
@@ -112,6 +114,14 @@ class SnapFeed:
             w, h = self.candidates[tex_id]
             self._script.post({'type': 'force_lock', 'texId': tex_id, 'w': w, 'h': h})
 
+    def _vcam_worker(self):
+        while not self._stop_event.is_set():
+            try:
+                raw = self.vcam_q.get(timeout=0.05)
+                self.send_to_vcam(raw)
+            except queue.Empty:
+                pass
+
     def send_to_vcam(self, frame: np.ndarray):
         if not _PVCAM_OK or self.unity_device_name is None:
             return
@@ -140,6 +150,9 @@ class SnapFeed:
             self._script  = self._session.create_script(HOOK_SCRIPT)
             self._script.on('message', self._on_message)
             self._script.load()
+            self._stop_event.clear()
+            self._vcam_thread = threading.Thread(target=self._vcam_worker, daemon=True)
+            self._vcam_thread.start()
             print(f"[{self.name}] Attached (PID {self.pid})")
             return True
         except frida.ProcessNotFoundError:
@@ -151,6 +164,10 @@ class SnapFeed:
         return False
 
     def detach(self):
+        self._stop_event.set()
+        if self._vcam_thread is not None:
+            self._vcam_thread.join(timeout=1.0)
+            self._vcam_thread = None
         if self._vcam is not None:
             try: self._vcam.close()
             except Exception: pass
@@ -272,12 +289,6 @@ def main():
                 try:
                     frame = feed.display_q.get_nowait()
                     cv2.imshow(feed.label, frame)
-                except queue.Empty:
-                    pass
-
-                try:
-                    raw = feed.vcam_q.get_nowait()
-                    feed.send_to_vcam(raw)
                 except queue.Empty:
                     pass
 
