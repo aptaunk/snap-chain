@@ -497,8 +497,9 @@ function tryHook() {
 
             if (bestId === 0) return;
 
+            if (bestId !== lockedId)
+                send({ type: 'status', msg: 'Locked tex ' + bestId + ' (' + bestW + 'x' + bestH + ')' });
             lockedId = bestId; lockedW = bestW; lockedH = bestH; lockedFails = 0;
-            send({ type: 'status', msg: 'Locked tex ' + bestId + ' (' + bestW + 'x' + bestH + ')' });
 
             try {
                 if (asyncCapture(bestId, bestW, bestH)) lastSendTime = now;

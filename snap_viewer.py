@@ -140,6 +140,9 @@ class SnapFeed:
                 self.unity_device_name = None
                 return
         try:
+            if frame.shape[0] != self._vcam.height or frame.shape[1] != self._vcam.width:
+                frame = cv2.resize(frame, (self._vcam.width, self._vcam.height),
+                                   interpolation=cv2.INTER_LINEAR)
             self._vcam.send(frame)
         except Exception as e:
             print(f"[{self.name}] vcam send error: {e}", file=sys.stderr)
@@ -296,15 +299,14 @@ def main():
             if key in (ord('q'), ord('Q'), 27):
                 break
 
-            for i, (feed, combo) in enumerate(zip(feeds, combos)):
-                opts = _combo_options(feed)
-                if opts != prev_opts[i]:
-                    current = sel_vars[i].get()
-                    combo['values'] = opts
-                    sel_vars[i].set(current if current in opts else 'Auto')
-                    prev_opts[i] = opts
-
             try:
+                for i, (feed, combo) in enumerate(zip(feeds, combos)):
+                    opts = _combo_options(feed)
+                    if opts != prev_opts[i]:
+                        current = sel_vars[i].get()
+                        combo['values'] = opts
+                        sel_vars[i].set(current if current in opts else 'Auto')
+                        prev_opts[i] = opts
                 root.update()
             except tk.TclError:
                 break
